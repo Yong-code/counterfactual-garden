@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="把决定种成植物，在未来复盘自己的判断。一个隐私优先、无需账号的决策校准花园。"
+    />
+    <meta name="theme-color" content="#f5f0e5" />
+    <title>Counterfactual Garden · 反事实花园</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="反事实花园首页">
+        <span class="brand-mark" aria-hidden="true">✣</span>
+        <span>
+          <strong>Counterfactual Garden</strong>
+          <small>反事实花园</small>
+        </span>
+      </a>
+      <nav aria-label="页面导航">
+        <a href="#garden">花园</a>
+        <a href="#plant">种下决定</a>
+        <a href="#records">复盘记录</a>
+      </nav>
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="切换深色模式">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow">A tiny lab for better hindsight</p>
+          <h1>别只记得结果，<br /><em>也记住当时的判断。</em></h1>
+          <p class="lede">
+            每个决定都是一颗种子。先写下选择、备选项和信心，等约定的日期再回来，看它究竟开出了什么。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#plant">种下第一个决定</a>
+            <button class="button ghost" id="load-demo" type="button">看看示例</button>
+          </div>
+          <p class="privacy-note"><span aria-hidden="true">⌁</span> 数据只保存在你的浏览器，不会上传。</p>
+        </div>
+        <div class="hero-art" aria-label="一株代表成长中决定的抽象植物">
+          <div class="sun-orbit"><span></span></div>
+          <div class="hero-plant">
+            <span class="hero-flower"><i></i><i></i><i></i><i></i><i></i><b></b></span>
+            <span class="hero-stem"></span>
+            <span class="hero-leaf left"></span>
+            <span class="hero-leaf right"></span>
+          </div>
+          <div class="soil-line"></div>
+          <span class="art-label label-one">信心 72%</span>
+          <span class="art-label label-two">还有 12 天复盘</span>
+        </div>
+      </section>
+
+      <section class="section garden-section" id="garden">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Your living archive</p>
+            <h2>你的判断花园</h2>
+          </div>
+          <p>高度代表信心，花朵代表已复盘，等待复盘的种子会在到期后轻轻提醒你。</p>
+        </div>
+
+        <div class="metrics" aria-label="花园统计">
+          <article><strong id="metric-total">0</strong><span>颗种子</span></article>
+          <article><strong id="metric-due">0</strong><span>待复盘</span></article>
+          <article><strong id="metric-bloomed">0</strong><span>已开花</span></article>
+          <article><strong id="metric-score">—</strong><span>校准分</span></article>
+        </div>
+
+        <div class="garden-empty" id="garden-empty">
+          <span aria-hidden="true">·</span>
+          <p>花园里还没有种子。</p>
+          <a href="#plant">种下一颗 →</a>
+        </div>
+        <div class="garden-bed" id="garden-bed" aria-live="polite"></div>
+      </section>
+
+      <section class="section plant-section" id="plant">
+        <div class="form-intro">
+          <p class="eyebrow">Plant a decision</p>
+          <h2>种下一次判断</h2>
+          <p>在知道结果之前留下记录，能减少“我早就知道”的错觉。</p>
+          <ol class="process-list">
+            <li><span>01</span> 写下真正的选择</li>
+            <li><span>02</span> 给当下的信心定价</li>
+            <li><span>03</span> 约定一个复盘日期</li>
+          </ol>
+        </div>
+
+        <form class="decision-form" id="decision-form">
+          <label class="field full">
+            <span>这次决定叫什么？ <b>*</b></span>
+            <input name="title" maxlength="70" required placeholder="例如：用一个月尝试晨间写作" />
+          </label>
+
+          <label class="field">
+            <span>我选择了 <b>*</b></span>
+            <textarea name="choice" maxlength="240" required placeholder="我准备怎么做？"></textarea>
+          </label>
+
+          <label class="field">
+            <span>没有选择的路</span>
+            <textarea name="alternative" maxlength="240" placeholder="如果不这样做，我本来会……"></textarea>
+          </label>
+
+          <label class="field full">
+            <span>我预期会发生 <b>*</b></span>
+            <textarea name="expectation" maxlength="300" required placeholder="写成未来可以判断“发生 / 没发生”的具体结果"></textarea>
+          </label>
+
+          <label class="field confidence-field">
+            <span>发生的信心</span>
+            <div class="range-row">
+              <input id="confidence" name="confidence" type="range" min="5" max="95" value="65" step="5" />
+              <output id="confidence-output" for="confidence">65%</output>
+            </div>
+            <small>避免 0% 和 100%，给意外留一点位置。</small>
+          </label>
+
+          <label class="field">
+            <span>回来复盘的日期 <b>*</b></span>
+            <input id="review-date" name="reviewDate" type="date" required />
+          </label>
+
+          <label class="field">
+            <span>分类</span>
+            <select name="category">
+              <option value="学习">学习</option>
+              <option value="创作">创作</option>
+              <option value="工作">工作</option>
+              <option value="生活">生活</option>
+              <option value="实验">实验</option>
+            </select>
+          </label>
+
+          <div class="form-submit">
+            <button class="button primary" type="submit">种进花园 <span aria-hidden="true">↗</span></button>
+            <p>以后仍可删除或导出这条记录。</p>
+          </div>
+        </form>
+      </section>
+
+      <section class="section records-section" id="records">
+        <div class="section-heading records-heading">
+          <div>
+            <p class="eyebrow">Review without rewriting history</p>
+            <h2>复盘记录</h2>
+          </div>
+          <div class="filters" role="group" aria-label="筛选记录">
+            <button class="filter active" type="button" data-filter="all">全部</button>
+            <button class="filter" type="button" data-filter="growing">生长中</button>
+            <button class="filter" type="button" data-filter="due">待复盘</button>
+            <button class="filter" type="button" data-filter="bloomed">已开花</button>
+          </div>
+        </div>
+        <div class="record-list" id="record-list" aria-live="polite"></div>
+        <p class="record-empty" id="record-empty">这个分类里还没有记录。</p>
+
+        <div class="data-tools">
+          <div>
+            <strong>你的数据，由你带走。</strong>
+            <span>导出 JSON 备份，或在另一台设备上导入。</span>
+          </div>
+          <div>
+            <button class="button small ghost" id="export-data" type="button">导出备份</button>
+            <label class="button small ghost file-button">
+              导入备份
+              <input id="import-data" type="file" accept="application/json,.json" />
+            </label>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="brand footer-brand">
+        <span class="brand-mark" aria-hidden="true">✣</span>
+        <span><strong>Counterfactual Garden</strong><small>Grow better judgment.</small></span>
+      </div>
+      <p>开源、离线优先、没有追踪器。</p>
+      <a href="https://github.com/" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </footer>
+
+    <dialog id="review-dialog">
+      <form method="dialog" id="review-form">
+        <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
+        <p class="eyebrow">Harvest the lesson</p>
+        <h2>这颗种子后来怎样了？</h2>
+        <p id="review-title" class="dialog-decision"></p>
+        <input id="review-id" name="id" type="hidden" />
+
+        <fieldset>
+          <legend>当时预期的结果发生了吗？</legend>
+          <div class="outcome-options">
+            <label><input type="radio" name="occurred" value="true" required /><span>发生了</span></label>
+            <label><input type="radio" name="occurred" value="false" required /><span>没发生</span></label>
+          </div>
+        </fieldset>
+
+        <label class="field full">
+          <span>实际发生了什么？ <b>*</b></span>
+          <textarea name="actual" maxlength="400" required placeholder="尽量只写事实，再写感受。"></textarea>
+        </label>
+        <label class="field full">
+          <span>给未来自己的一个提醒</span>
+          <textarea name="lesson" maxlength="300" placeholder="下次遇到类似决定，我会……"></textarea>
+        </label>
+        <button class="button primary full-width" value="default" type="submit">完成复盘，让它开花</button>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
