@@ -23,7 +23,7 @@ Counterfactual Garden 是一个隐私优先的决策日志。你先记录选择�
 需要 Python 3（macOS 通常可直接使用）：
 
 ```bash
-git clone https://github.com/YOUR_NAME/counterfactual-garden.git
+git clone https://github.com/Yong-code/counterfactual-garden.git
 cd counterfactual-garden
 python3 -m http.server 4173
 ```
@@ -36,6 +36,11 @@ python3 -m http.server 4173
 npm test
 ```
 
+## GitHub / Git 零基础教程
+
+- [GitHub 网页版教程](GITHUB_WEB_TUTORIAL_ZH.md)：只用浏览器查看、修改、上传、提交和发布。
+- [本地 Git 教程](GIT_TUTORIAL_ZH.md)：学习 `add`、`commit`、`push`、分支与回退。
+
 ## 项目结构
 
 ```text
@@ -45,7 +50,8 @@ counterfactual-garden/
 ├── app.js             界面交互和浏览器存储
 ├── core.js            日期、状态、校准分等纯逻辑
 ├── tests/             不依赖第三方库的单元测试
-└── GIT_TUTORIAL_ZH.md 写给零基础用户的 Git 教程
+├── GIT_TUTORIAL_ZH.md 本地 Git 零基础教程
+└── GITHUB_WEB_TUTORIAL_ZH.md 只用浏览器的 GitHub 教程
 ```
 
 ## 下一步可以做什么
