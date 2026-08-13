@@ -84,11 +84,32 @@ export function validateImport(payload) {
   }
   for (const item of payload.decisions) {
     const required = ["id", "title", "choice", "expectation", "confidence", "reviewDate"];
-    if (!item || required.some((key) => item[key] === undefined)) {
+    if (!item || typeof item !== "object" || required.some((key) => item[key] === undefined)) {
       throw new Error("备份中有不完整的决定记录。");
     }
-    if (Number(item.confidence) < 0 || Number(item.confidence) > 100) {
+    const requiredText = ["id", "title", "choice", "expectation", "reviewDate"];
+    if (requiredText.some((key) => typeof item[key] !== "string" || !item[key].trim())) {
+      throw new Error("备份中有不完整的决定记录。");
+    }
+    const confidence = Number(item.confidence);
+    if (!Number.isFinite(confidence) || confidence < 0 || confidence > 100) {
       throw new Error("备份中有无效的信心数值。");
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(item.reviewDate) || Number.isNaN(startOfDay(item.reviewDate).getTime())) {
+      throw new Error("备份中有无效的复盘日期。");
+    }
+    if (item.review !== undefined && item.review !== null) {
+      const review = item.review;
+      if (
+        typeof review !== "object"
+        || typeof review.occurred !== "boolean"
+        || typeof review.actual !== "string"
+        || !review.actual.trim()
+        || typeof review.reviewedAt !== "string"
+        || Number.isNaN(new Date(review.reviewedAt).getTime())
+      ) {
+        throw new Error("备份中有无效的复盘记录。");
+      }
     }
   }
   return payload.decisions;

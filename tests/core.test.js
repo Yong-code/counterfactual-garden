@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   brierScore,
   calibrationScore,
+  createDecision,
   daysUntil,
   gardenMetrics,
   statusOf,
@@ -44,6 +45,30 @@ test("garden metrics count each visible state", () => {
 test("imports reject unrelated or structurally incomplete JSON", () => {
   assert.throws(() => validateImport({ app: "another-app" }), /不是反事实花园/);
   assert.throws(() => validateImport({ app: "counterfactual-garden", schemaVersion: 1, decisions: [{}] }), /不完整/);
+});
+
+test("imports reject invalid confidence, date, and review values", () => {
+  const base = { id: "1", title: "x", choice: "y", expectation: "z", confidence: 50, reviewDate: "2026-09-01" };
+  const envelope = (decision) => ({ app: "counterfactual-garden", schemaVersion: 1, decisions: [decision] });
+  assert.throws(() => validateImport(envelope({ ...base, confidence: "unknown" })), /信心数值/);
+  assert.throws(() => validateImport(envelope({ ...base, reviewDate: "September" })), /复盘日期/);
+  assert.throws(() => validateImport(envelope({ ...base, review: { occurred: "yes" } })), /复盘记录/);
+});
+
+test("createDecision normalizes form values without changing the schema", () => {
+  const decision = createDecision({
+    title: "  新决定  ",
+    choice: "  去做  ",
+    alternative: "  等待  ",
+    expectation: "  收到反馈  ",
+    confidence: "65",
+    reviewDate: "2026-09-01",
+    category: "创作",
+  }, today);
+  assert.equal(decision.title, "新决定");
+  assert.equal(decision.choice, "去做");
+  assert.equal(decision.confidence, 65);
+  assert.equal(decision.review, null);
 });
 
 test("valid backups are returned for merging", () => {

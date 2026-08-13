@@ -15,16 +15,27 @@ const elements = {
   form: document.querySelector("#decision-form"),
   confidence: document.querySelector("#confidence"),
   confidenceOutput: document.querySelector("#confidence-output"),
+  confidenceLabel: document.querySelector("#confidence-label"),
   reviewDate: document.querySelector("#review-date"),
+  reviewDateHint: document.querySelector("#review-date-hint"),
   gardenBed: document.querySelector("#garden-bed"),
   gardenEmpty: document.querySelector("#garden-empty"),
   recordList: document.querySelector("#record-list"),
   recordEmpty: document.querySelector("#record-empty"),
+  recordSearch: document.querySelector("#record-search"),
+  recordCount: document.querySelector("#record-count"),
   reviewDialog: document.querySelector("#review-dialog"),
   reviewForm: document.querySelector("#review-form"),
   reviewTitle: document.querySelector("#review-title"),
   reviewId: document.querySelector("#review-id"),
+  deleteDialog: document.querySelector("#delete-dialog"),
+  deleteForm: document.querySelector("#delete-form"),
+  deleteTitle: document.querySelector("#delete-title"),
+  deleteId: document.querySelector("#delete-id"),
+  cancelDelete: document.querySelector("#cancel-delete"),
   toast: document.querySelector("#toast"),
+  toastMessage: document.querySelector("#toast-message"),
+  toastAction: document.querySelector("#toast-action"),
   loadDemo: document.querySelector("#load-demo"),
   exportData: document.querySelector("#export-data"),
   importData: document.querySelector("#import-data"),
@@ -39,7 +50,9 @@ const elements = {
 
 let decisions = readDecisions();
 let activeFilter = "all";
+let searchQuery = "";
 let toastTimer;
+let toastActionHandler = null;
 
 function readDecisions() {
   try {
@@ -57,7 +70,11 @@ function saveDecisions() {
 function isoDateOffset(days) {
   const date = new Date();
   date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 function formatDate(value) {
@@ -76,11 +93,17 @@ function relativeReview(decision) {
   return `${days} 天后复盘`;
 }
 
-function showToast(message) {
+function showToast(message, options = {}) {
   window.clearTimeout(toastTimer);
-  elements.toast.textContent = message;
+  elements.toastMessage.textContent = message;
+  toastActionHandler = typeof options.onAction === "function" ? options.onAction : null;
+  elements.toastAction.hidden = !toastActionHandler;
+  elements.toastAction.textContent = options.actionLabel || "撤销";
   elements.toast.classList.add("show");
-  toastTimer = window.setTimeout(() => elements.toast.classList.remove("show"), 2600);
+  toastTimer = window.setTimeout(() => {
+    elements.toast.classList.remove("show");
+    toastActionHandler = null;
+  }, options.duration || 2800);
 }
 
 function makeText(tagName, className, text) {
@@ -165,6 +188,10 @@ function recordMarkup(decision) {
     if (decision.review.lesson) details.append(buildDetail("留给未来", decision.review.lesson));
   }
 
+  const more = document.createElement("details");
+  more.className = "record-more";
+  more.append(makeText("summary", "", decision.review ? "查看判断与复盘" : "查看完整判断"), details);
+
   const actions = document.createElement("div");
   actions.className = "record-actions";
   if (!decision.review) {
@@ -178,16 +205,24 @@ function recordMarkup(decision) {
   deleteButton.dataset.action = "delete";
   actions.append(deleteButton);
 
-  article.append(top, title, prediction, confidence, confidenceCaption, details, actions);
+  article.append(top, title, prediction, confidence, confidenceCaption, more, actions);
   return article;
 }
 
 function renderRecords() {
   elements.recordList.replaceChildren();
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase("zh-CN");
   const filtered = decisions
     .filter((decision) => activeFilter === "all" || statusOf(decision) === activeFilter)
+    .filter((decision) => {
+      if (!normalizedQuery) return true;
+      return [decision.title, decision.expectation, decision.choice, decision.alternative, decision.category]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase("zh-CN").includes(normalizedQuery));
+    })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   elements.recordEmpty.hidden = filtered.length > 0;
+  elements.recordCount.textContent = `${filtered.length} 条记录`;
   filtered.forEach((decision) => elements.recordList.append(recordMarkup(decision)));
 }
 
@@ -222,11 +257,10 @@ function handleRecordAction(event) {
   if (actionButton.dataset.action === "review") openReview(card.dataset.id);
   if (actionButton.dataset.action === "delete") {
     const decision = decisions.find((item) => item.id === card.dataset.id);
-    if (!decision || !window.confirm(`确定删除“${decision.title}”吗？这条记录将从当前浏览器移除。`)) return;
-    decisions = decisions.filter((item) => item.id !== card.dataset.id);
-    saveDecisions();
-    render();
-    showToast("记录已删除");
+    if (!decision) return;
+    elements.deleteId.value = decision.id;
+    elements.deleteTitle.textContent = `“${decision.title}”`;
+    elements.deleteDialog.showModal();
   }
 }
 
@@ -237,23 +271,57 @@ elements.form.addEventListener("submit", (event) => {
   saveDecisions();
   elements.form.reset();
   elements.confidence.value = "65";
-  elements.confidenceOutput.textContent = "65%";
   elements.reviewDate.value = isoDateOffset(30);
+  updateConfidence();
+  updateReviewDateHint();
   render();
   showToast("决定已经种进花园");
   document.querySelector("#garden").scrollIntoView({ behavior: "smooth" });
 });
 
-elements.confidence.addEventListener("input", () => {
-  elements.confidenceOutput.textContent = `${elements.confidence.value}%`;
-});
+function confidenceDescription(value) {
+  if (value <= 30) return "谨慎预期";
+  if (value <= 55) return "仍在权衡";
+  if (value <= 75) return "较有把握";
+  return "很有把握";
+}
+
+function updateConfidence() {
+  const value = Number(elements.confidence.value);
+  elements.confidenceOutput.textContent = `${value}%`;
+  elements.confidenceLabel.textContent = confidenceDescription(value);
+  elements.confidence.style.setProperty("--confidence", `${value}%`);
+}
+
+function updateReviewDateHint() {
+  if (!elements.reviewDate.value) {
+    elements.reviewDateHint.textContent = "请选择未来的复盘日期";
+    return;
+  }
+  const days = daysUntil(elements.reviewDate.value);
+  elements.reviewDateHint.textContent = days === 0 ? "今天回来复盘" : `${days} 天后回来看看`;
+}
+
+elements.confidence.addEventListener("input", updateConfidence);
+elements.reviewDate.addEventListener("input", updateReviewDateHint);
 
 elements.recordList.addEventListener("click", handleRecordAction);
 
 elements.gardenBed.addEventListener("click", (event) => {
   const plant = event.target.closest(".garden-plant");
   if (!plant) return;
-  document.querySelector(`.record-card[data-id="${CSS.escape(plant.dataset.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  activeFilter = "all";
+  searchQuery = "";
+  elements.recordSearch.value = "";
+  document.querySelectorAll(".filter").forEach((button) => {
+    const isActive = button.dataset.filter === "all";
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  renderRecords();
+  window.requestAnimationFrame(() => {
+    document.querySelector(`.record-card[data-id="${CSS.escape(plant.dataset.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
 });
 
 elements.reviewForm.addEventListener("submit", (event) => {
@@ -274,15 +342,47 @@ elements.reviewForm.addEventListener("submit", (event) => {
   showToast("复盘完成，一朵花开了");
 });
 
+elements.cancelDelete.addEventListener("click", () => elements.deleteDialog.close());
+
+elements.deleteForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const id = elements.deleteId.value;
+  const originalIndex = decisions.findIndex((item) => item.id === id);
+  if (originalIndex < 0) return;
+  const [decision] = decisions.splice(originalIndex, 1);
+  saveDecisions();
+  elements.deleteDialog.close();
+  render();
+  showToast("记录已从当前浏览器删除", {
+    actionLabel: "撤销",
+    duration: 6000,
+    onAction: () => {
+      decisions.splice(originalIndex, 0, decision);
+      saveDecisions();
+      render();
+      showToast("删除已撤销");
+    },
+  });
+});
+
 document.querySelectorAll(".filter").forEach((button) => {
   button.addEventListener("click", () => {
     activeFilter = button.dataset.filter;
-    document.querySelectorAll(".filter").forEach((item) => item.classList.toggle("active", item === button));
+    document.querySelectorAll(".filter").forEach((item) => {
+      const isActive = item === button;
+      item.classList.toggle("active", isActive);
+      item.setAttribute("aria-pressed", String(isActive));
+    });
     renderRecords();
   });
 });
 
-elements.loadDemo.addEventListener("click", () => {
+elements.recordSearch.addEventListener("input", () => {
+  searchQuery = elements.recordSearch.value;
+  renderRecords();
+});
+
+function loadDemoDecisions() {
   if (decisions.some((item) => item.demo)) {
     document.querySelector("#garden").scrollIntoView({ behavior: "smooth" });
     showToast("示例已经在花园里了");
@@ -332,6 +432,11 @@ elements.loadDemo.addEventListener("click", () => {
   render();
   document.querySelector("#garden").scrollIntoView({ behavior: "smooth" });
   showToast("三颗示例种子已加入，可随时删除");
+}
+
+elements.loadDemo.addEventListener("click", loadDemoDecisions);
+document.querySelectorAll("[data-demo-trigger]").forEach((button) => {
+  button.addEventListener("click", loadDemoDecisions);
 });
 
 elements.exportData.addEventListener("click", () => {
@@ -370,6 +475,8 @@ elements.importData.addEventListener("change", async () => {
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   elements.themeToggle.setAttribute("aria-label", theme === "dark" ? "切换浅色模式" : "切换深色模式");
+  elements.themeToggle.querySelector("span").textContent = theme === "dark" ? "☀" : "☾";
+  document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#0c1713" : "#f2f4ef";
 }
 
 elements.themeToggle.addEventListener("click", () => {
@@ -380,6 +487,30 @@ elements.themeToggle.addEventListener("click", () => {
 
 const storedTheme = localStorage.getItem(THEME_KEY);
 applyTheme(storedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
-elements.reviewDate.min = new Date().toISOString().slice(0, 10);
+elements.toastAction.addEventListener("click", () => {
+  window.clearTimeout(toastTimer);
+  const handler = toastActionHandler;
+  toastActionHandler = null;
+  elements.toast.classList.remove("show");
+  if (handler) handler();
+});
+
+const observedSections = [...document.querySelectorAll("main > section[id]")];
+const navLinks = [...document.querySelectorAll("nav a")];
+const sectionObserver = new IntersectionObserver((entries) => {
+  const visible = entries.find((entry) => entry.isIntersecting);
+  if (!visible) return;
+  navLinks.forEach((link) => {
+    const isActive = link.hash === `#${visible.target.id}`;
+    link.classList.toggle("active", isActive);
+    if (isActive) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+}, { rootMargin: "-28% 0px -62%", threshold: 0 });
+observedSections.forEach((section) => sectionObserver.observe(section));
+
+elements.reviewDate.min = isoDateOffset(0);
 elements.reviewDate.value = isoDateOffset(30);
+updateConfidence();
+updateReviewDateHint();
 render();
