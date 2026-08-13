@@ -15,7 +15,8 @@ Counterfactual Garden 是一个隐私优先的决策日志。你先记录选择�
 
 ## 在线体验
 
-首次发布后会在这里补充 GitHub Pages 链接。
+- GitHub Pages：https://yong-code.github.io/counterfactual-garden/
+- 源代码：https://github.com/Yong-code/counterfactual-garden
 
 ## 本地运行
 
