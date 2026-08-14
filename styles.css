@@ -2172,6 +2172,7 @@ fieldset {
   .mobile-nav a span { font-size: 0.8rem; }
   .hero, .section, footer { width: min(calc(100% - 2rem), 1160px); }
   .hero { gap: 3rem; margin-top: -4.6rem; padding: 9rem 0 4.5rem; }
+  .hero-copy h1 { margin-right: auto; margin-left: auto; text-align: center; }
   h1 { font-size: clamp(3.15rem, 15vw, 4.7rem); }
   .hero-actions { align-items: stretch; flex-direction: column; }
   .hero-actions .button { width: 100%; }
